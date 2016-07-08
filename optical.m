@@ -1,0 +1,156 @@
+clc
+clear all
+close all   %close all previous otpts
+image='R001.jpg';
+i=imread(image);
+i1=histeq(i); %to increase contrast
+i2=im2bw(i1,0.5); %dataset in grey. changed to bw
+i3= bwareaopen(i2,round(numel(i)*0.02));    %remove noise
+i4=i3;
+
+
+x=0;y=0;c=0;        %to calulate centroid of the region
+[m n]=size(i)
+for j=1:584 %traverse
+for k=1:768
+    if(i3(j,k)==1) %white pixels =1. Find all white pixel points. Take their avg.
+        x=x+k;
+        y=y+j;
+        c=c+1;
+    end
+end
+end
+x=round(x/c);
+y=round(y/c);
+yellow = uint8([0 0 0]); % [R G B]; class of yellow must match class of I %for drawing bloack line
+ shapeInserter = vision.ShapeInserter('Shape','Circles','BorderColor','Custom','CustomBorderColor',yellow);
+ circles = int32([x y 80; x y 160; x y 400]); %radius
+ RGB = repmat(i,[1,1,3]); 
+ J = step(shapeInserter, RGB, circles);
+ imshow(J);  
+ hold on
+ plot(x,y,'*');
+output1='o1.jpg';
+imwrite(J,output1);
+
+
+
+
+
+
+%mod 2
+
+
+I = rgb2gray(imread(output1));
+BW6 = edge(I,'canny',0.12);
+figure;imshow(BW6);
+title('canny Edge Detection');
+output2='o2.jpg';
+imwrite(BW6,output2);
+
+
+%mod 3
+i=imread(output2);
+% BW=rgb2gray(i);
+bifur = im2bw(i, 0.5);
+[m n] = size(bifur);
+figure;imshow(bifur);
+count(1:m,1:n)=0;
+transition(1:m,1:n)=0;
+
+%-------------------------------------------------------------------
+                                                                                                                                                                                                                                                                        
+for j=2:m-1  % Not considering the first and last row
+for k=2:n-1  % Not considering the first and last column
+     if(bifur(j,k)==1)
+         if(bifur(j-1,k-1)==1)
+             count(j,k)=count(j,k)+1;            
+         end
+         if(bifur(j,k-1)==1)
+            count(j,k)=count(j,k)+1;
+         end
+         if(bifur(j+1,k-1)==1)
+             count(j,k)=count(j,k)+1;
+         end
+         if(bifur(j-1,k)==1)
+            count(j,k)=count(j,k)+1;
+         end
+         if(bifur(j+1,k)==1)
+             count(j,k)=count(j,k)+1;
+         end
+         if(bifur(j-1,k+1)==1)
+             count(j,k)=count(j,k)+1;
+         end
+         if(bifur(j,k+1)==1)
+            count(j,k)=count(j,k)+1;
+         end
+         if(bifur(j+1,k+1)==1)
+            count(j,k)=count(j,k)+1;
+         end
+         
+         if(bifur(j-1,k)==1)
+                if(bifur(j-1,k-1)==0)
+                    transition(j,k)=transition(j,k)+1; % count matrix = count of white pix around that point, % trans matrix = stores the count of no: of white-black transitions 
+                end
+         end
+         if(bifur(j-1,k-1)==1)
+                if(bifur(j,k-1)==0)
+                    transition(j,k)=transition(j,k)+1;
+                end
+         end
+         if(bifur(j,k-1)==1)
+                if(bifur(j+1,k-1)==0)
+                    transition(j,k)=transition(j,k)+1;
+                end
+         end
+         if(bifur(j+1,k-1)==1)
+                if(bifur(j+1,k)==0)
+                    transition(j,k)=transition(j,k)+1;
+                end
+         end
+         if(bifur(j+1,k)==1)
+                if(bifur(j+1,k+1)==0)
+                    transition(j,k)=transition(j,k)+1;
+                end
+         end
+         if(bifur(j+1,k+1)==1)
+                if(bifur(j,k+1)==0)
+                    transition(j,k)=transition(j,k)+1;
+                end
+         end
+         if(bifur(j,k+1)==1)
+                if(bifur(j-1,k+1)==0)
+                    transition(j,k)=transition(j,k)+1;
+                end
+         end
+         if(bifur(j-1,k+1)==1)
+                if(bifur(j-1,k)==0)
+                    transition(j,k)=transition(j,k)+1;
+                end
+         end 
+         
+     end
+        
+end %trans >2 and white count >3, then those pts which have white are plotted 
+end
+
+%--------------------------------------------------------
+points(100,100)=0;
+i=1;
+%transition=average(image);
+[c d]=size(transition)
+ title('Bifurcation');
+  hold on
+  for j=1:c
+  for k=1:d
+        if((transition(j,k)>2) && (count(j,k)>=3))     
+          plot(k,j,'g.')
+          points(i,1)=k;
+          points(i,2)=j;
+          i=i+1;
+          hold on
+        end    
+  end
+  end
+  size=i-1;
+  hold on
